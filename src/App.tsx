@@ -218,11 +218,16 @@ function Breakdown({ icon, label, value }: { icon: ReactNode; label: string; val
 
 function EventDetail({ event, settings, onClose }: { event: CalendarEvent; settings: Settings; onClose: () => void }) {
   const departure = calculateDeparture(event, settings)
+  useEffect(() => {
+    const closeOnEscape = (keyboardEvent: KeyboardEvent) => { if (keyboardEvent.key === 'Escape') onClose() }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [onClose])
   return <div className="panel-backdrop" role="presentation" onMouseDown={(mouseEvent) => mouseEvent.target === mouseEvent.currentTarget && onClose()}>
-    <section className="detail-dialog" role="dialog" aria-modal="true" aria-label="予定の詳細">
+    <section className="detail-dialog" role="dialog" aria-modal="true" aria-labelledby="event-detail-title" aria-describedby="event-detail-description">
       <div className="panel-header"><h2>予定の詳細</h2><button className="icon-button" aria-label="予定の詳細を閉じる" onClick={onClose}><X size={22} /></button></div>
       <p className="event-start">{event.startsAt}開始</p>
-      <h2>{event.title}</h2>
+      <h2 id="event-detail-title">{event.title}</h2>
       <p className="detail-location"><MapPin size={17} />{event.location}</p>
       <div className="detail-grid">
         <span>出発時刻</span><strong>{departure}</strong>
@@ -230,7 +235,7 @@ function EventDetail({ event, settings, onClose }: { event: CalendarEvent; setti
         <span>準備時間</span><strong>{event.preparationMinutes}分</strong>
         <span>余裕時間</span><strong>{settings.bufferMinutes}分</strong>
       </div>
-      <p className="detail-status">{event.travelUpdatedAt ? `経路更新：${new Date(event.travelUpdatedAt).toLocaleString('ja-JP')}` : '経路は未取得です'}</p>
+      <p className="detail-status" id="event-detail-description">{event.travelUpdatedAt ? `経路更新：${new Date(event.travelUpdatedAt).toLocaleString('ja-JP')}` : '経路は未取得です'}</p>
       <p className="detail-status">通知：{event.notificationEnabled ? '設定済み' : '未設定'}</p>
     </section>
   </div>
@@ -239,6 +244,11 @@ function EventDetail({ event, settings, onClose }: { event: CalendarEvent; setti
 function SettingsPanel({ settings, onClose, onSave, onConnectCalendar, onDisconnectCalendar }: { settings: Settings; onClose: () => void; onSave: (settings: Settings) => Promise<void>; onConnectCalendar: () => void; onDisconnectCalendar: () => void }) {
   const [draft, setDraft] = useState(settings)
   const modes: TravelMode[] = ['transit', 'walking', 'bicycling', 'driving']
+  useEffect(() => {
+    const closeOnEscape = (keyboardEvent: KeyboardEvent) => { if (keyboardEvent.key === 'Escape') onClose() }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [onClose])
   return (
     <div className="panel-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <aside className="settings-panel" aria-label="設定">
