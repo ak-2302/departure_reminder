@@ -4,6 +4,7 @@ import { App as CapacitorApp } from '@capacitor/app'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
 import { Network } from '@capacitor/network'
 import { LocalNotifications } from '@capacitor/local-notifications'
+import { Browser } from '@capacitor/browser'
 import { Bell, ChevronRight, Clock3, MapPin, Settings as SettingsIcon, Smartphone, TrainFront, X } from 'lucide-react'
 import { calculateDeparture, defaultSettings, sampleEvents, travelModeLabel, type CalendarEvent, type Settings, type TravelMode } from './domain'
 import { fetchCalendarEvents, requestCalendarAccess } from './googleCalendar'
@@ -228,6 +229,10 @@ function Breakdown({ icon, label, value }: { icon: ReactNode; label: string; val
 
 function EventDetail({ event, settings, onClose }: { event: CalendarEvent; settings: Settings; onClose: () => void }) {
   const departure = calculateDeparture(event, settings)
+  const openMaps = () => {
+    const params = new URLSearchParams({ api: '1', origin: settings.origin, destination: event.location, travelmode: settings.travelMode === 'transit' ? 'transit' : settings.travelMode })
+    void Browser.open({ url: `https://www.google.com/maps/dir/?${params}` })
+  }
   const dialogRef = useRef<HTMLElement>(null)
   useDialogAccessibility(dialogRef, onClose)
   return <div className="panel-backdrop" role="presentation" onMouseDown={(mouseEvent) => mouseEvent.target === mouseEvent.currentTarget && onClose()}>
@@ -244,6 +249,7 @@ function EventDetail({ event, settings, onClose }: { event: CalendarEvent; setti
       </div>
       <p className="detail-status" id="event-detail-description">{event.travelUpdatedAt ? `経路更新：${new Date(event.travelUpdatedAt).toLocaleString('ja-JP')}` : '経路は未取得です'}</p>
       <p className="detail-status">通知：{event.notificationEnabled ? '設定済み' : '未設定'}</p>
+      <button className="primary-button" onClick={openMaps} disabled={!settings.origin.trim()}>Google Mapsで経路を開く</button>
     </section>
   </div>
 }
