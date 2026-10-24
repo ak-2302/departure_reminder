@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import jp.ak2302.departurereminder.domain.DepartureSettings
+import jp.ak2302.departurereminder.domain.CalendarEvent
 import jp.ak2302.departurereminder.domain.TravelMode
 
 class MainActivity : ComponentActivity() {
@@ -45,6 +46,7 @@ private fun DepartureReminderApp() {
     var screen by rememberSaveable { mutableStateOf(Screen.Home) }
     val departureViewModel: DepartureViewModel = viewModel()
     val settings by departureViewModel.settings.collectAsState()
+    val calendarEvents by departureViewModel.calendarEvents.collectAsState()
 
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
@@ -57,6 +59,7 @@ private fun DepartureReminderApp() {
                     Screen.Home -> HomeScreen(
                         paddingValues = paddingValues,
                         settings = settings,
+                        event = calendarEvents.firstOrNull(),
                         onOpenSettings = { screen = Screen.Settings },
                         onOpenDetail = { screen = Screen.Detail },
                     )
@@ -88,6 +91,7 @@ private enum class Screen(val title: String) {
 private fun HomeScreen(
     paddingValues: PaddingValues,
     settings: DepartureSettings,
+    event: CalendarEvent?,
     onOpenSettings: () -> Unit,
     onOpenDetail: () -> Unit,
 ) {
@@ -100,8 +104,8 @@ private fun HomeScreen(
     ) {
         Text("次の出発（サンプル）", style = MaterialTheme.typography.labelLarge)
         Text("08:20", style = MaterialTheme.typography.displaySmall)
-        Text("サンプル予定", style = MaterialTheme.typography.headlineSmall)
-        Text("09:30開始 / 東京都庁")
+        Text(event?.title ?: "予定はありません", style = MaterialTheme.typography.headlineSmall)
+        Text("09:30開始 / ${event?.location ?: "場所未設定"}")
         Text("移動 45分・準備 ${settings.preparationMinutes}分・余裕 ${settings.bufferMinutes}分")
         Text("出発地点：${settings.origin.ifBlank { "未設定" }}")
         Text("移動手段：${settings.travelMode.label}")
