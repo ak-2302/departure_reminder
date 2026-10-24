@@ -6,7 +6,7 @@ import { calculateDeparture, defaultSettings, sampleEvents, travelModeLabel, typ
 import { fetchCalendarEvents, requestCalendarAccess } from './googleCalendar'
 import { fetchTravelMinutes } from './googleRoutes'
 import { scheduleDepartureNotification } from './notifications'
-import { loadSettings, saveSettings } from './storage'
+import { loadEvents, loadSettings, saveEvents, saveSettings } from './storage'
 
 function App() {
   const [settings, setSettings] = useState<Settings>(defaultSettings)
@@ -19,6 +19,9 @@ function App() {
 
   useEffect(() => {
     void loadSettings().then(setSettings)
+    void loadEvents().then((storedEvents) => {
+      if (storedEvents?.length) setEvents(storedEvents)
+    })
   }, [])
 
   const updateSettings = async (next: Settings) => {
@@ -38,6 +41,7 @@ function App() {
       const accessToken = await requestCalendarAccess()
       const calendarEvents = await fetchCalendarEvents(accessToken)
       setEvents(calendarEvents)
+      await saveEvents(calendarEvents)
       setCalendarStatus(`${calendarEvents.length}件の予定を取得しました`)
     } catch (error) {
       setCalendarStatus(error instanceof Error ? error.message : 'Googleカレンダーに接続できませんでした')
@@ -49,7 +53,9 @@ function App() {
     setCalendarStatus('Google Mapsで経路を取得中…')
     try {
       const travelMinutes = await fetchTravelMinutes(settings.origin, nextEvent.location, settings.travelMode)
-      setEvents((current) => current.map((event, index) => index === 0 ? { ...event, travelMinutes } : event))
+      const updatedEvents = events.map((event, index) => index === 0 ? { ...event, travelMinutes } : event)
+      setEvents(updatedEvents)
+      await saveEvents(updatedEvents)
       setCalendarStatus(`経路を更新しました（移動 ${travelMinutes}分）`)
     } catch (error) {
       setCalendarStatus(error instanceof Error ? error.message : '経路を取得できませんでした')
