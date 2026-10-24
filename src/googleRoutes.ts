@@ -3,6 +3,8 @@ import { fetchWithRetry } from './network'
 
 const routesEndpoint = 'https://routes.googleapis.com/directions/v2:computeRoutes'
 const cacheTtlMs = 10 * 60 * 1000
+const dailyRequestLimit = 50
+const dailyRequestKey = 'routes-api-daily-request-count'
 const routeCache = new Map<string, { travelMinutes: number; expiresAt: number }>()
 const pendingRoutes = new Map<string, Promise<number>>()
 
@@ -19,6 +21,7 @@ export async function fetchTravelMinutes(origin: string, destination: string, mo
   if (cached && cached.expiresAt > Date.now()) return cached.travelMinutes
   const pending = pendingRoutes.get(cacheKey)
   if (pending) return pending
+  reserveDailyRequest()
 
   const request = requestTravelMinutes(origin.trim(), destination.trim(), mode, apiKey, departureTime)
   pendingRoutes.set(cacheKey, request)
@@ -29,6 +32,20 @@ export async function fetchTravelMinutes(origin: string, destination: string, mo
   } finally {
     pendingRoutes.delete(cacheKey)
   }
+}
+
+function reserveDailyRequest(): void {
+  const today = new Date().toISOString().slice(0, 10)
+  const stored = localStorage.getItem(dailyRequestKey)
+  let current: { date?: string; count?: number } | undefined
+  try {
+    current = stored ? JSON.parse(stored) as { date?: string; count?: number } : undefined
+  } catch {
+    current = undefined
+  }
+  const count = current?.date === today ? current.count ?? 0 : 0
+  if (count >= dailyRequestLimit) throw new Error(`本日の経路取得上限（${dailyRequestLimit}回）に達しました。明日もう一度お試しください`)
+  localStorage.setItem(dailyRequestKey, JSON.stringify({ date: today, count: count + 1 }))
 }
 
 async function requestTravelMinutes(origin: string, destination: string, mode: TravelMode, apiKey: string, departureTime?: string): Promise<number> {
