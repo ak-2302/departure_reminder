@@ -41,8 +41,10 @@ export async function requestNativeCalendarAccess(): Promise<string> {
     let settled = false
     let appListener: { remove: () => Promise<void> } | undefined
     let browserListener: { remove: () => Promise<void> } | undefined
+    let browserFinishedTimer: ReturnType<typeof setTimeout> | undefined
     const cleanup = async () => {
       pendingVerifier = undefined
+      if (browserFinishedTimer) clearTimeout(browserFinishedTimer)
       await appListener?.remove()
       await browserListener?.remove()
     }
@@ -81,7 +83,9 @@ export async function requestNativeCalendarAccess(): Promise<string> {
     void App.addListener('appUrlOpen', callback)
       .then(async (listener) => {
         appListener = listener
-        browserListener = await Browser.addListener('browserFinished', () => void fail(new Error('Google認証をキャンセルしました')))
+        browserListener = await Browser.addListener('browserFinished', () => {
+          browserFinishedTimer = setTimeout(() => void fail(new Error('Google認証をキャンセルしました')), 1500)
+        })
         await Browser.open({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` })
       })
       .catch((error) => void fail(error instanceof Error ? error : new Error('Google認証画面を開けませんでした')))
