@@ -19,7 +19,7 @@ npm install
 
 Googleカレンダー連携を試す場合は、`.env.example`を`.env.local`へコピーし、Google Cloudで作成したOAuthクライアントIDを設定します。実際のキーはGitへコミットしないでください。
 
-Android版のGoogle認証は、アプリ内に埋め込んだWebViewではなく、Capacitor BrowserでGoogleの認証画面を開き、Authorization Code + PKCEでアプリへ戻る方式です。Google Cloud側では、アプリのOAuthクライアント設定と`jp.ak2302.departurereminder:/oauth2redirect`のリダイレクトURI設定が必要です。
+Android版のGoogle認証は、アプリ内に埋め込んだWebViewではなく、Capacitor BrowserでGoogleの認証画面を開き、Authorization Code + PKCEでアプリへ戻る方式です。Google Cloud側では、HTTPSリダイレクトURI `https://ak-2302.github.io/departure_reminder/oauth2redirect` をOAuthクライアントへ登録します。Android App Linkの公開設定（`public/.well-known/assetlinks.json`）は、リリース署名鍵へ差し替えてください。
 
 ```sh
 cp .env.example .env.local

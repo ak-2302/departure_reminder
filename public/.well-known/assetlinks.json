@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "jp.ak2302.departurereminder",
+      "sha256_cert_fingerprints": [
+        "43:03:DC:40:26:E6:E3:66:28:13:F2:66:2F:7D:CA:B3:4C:AE:BA:63:DB:AA:50:33:43:25:0B:68:A1:96:A3:4C"
+      ]
+    }
+  }
+]

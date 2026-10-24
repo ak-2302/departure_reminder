@@ -2,7 +2,7 @@ import { App } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
 
 const scope = 'https://www.googleapis.com/auth/calendar.events.readonly'
-const redirectUri = 'jp.ak2302.departurereminder:/oauth2redirect'
+const redirectUri = 'https://ak-2302.github.io/departure_reminder/oauth2redirect'
 let pendingVerifier: string | undefined
 
 function base64Url(bytes: Uint8Array): string {
