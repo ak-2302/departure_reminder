@@ -33,6 +33,12 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="jp.ak2302.departurereminder" android:pathPrefix="/oauth2redirect" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.googleusercontent.apps.370884137570-jpp7h7e0nvnaad7kbdirbvdab4sn8ds7" android:pathPrefix="/oauth2redirect" />
+            </intent-filter>
 
         </activity>
 
