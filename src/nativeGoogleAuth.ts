@@ -36,10 +36,25 @@ export async function requestNativeCalendarAccess(): Promise<string> {
   })
 
   return new Promise((resolve, reject) => {
+    let settled = false
+    let appListener: { remove: () => Promise<void> } | undefined
+    let browserListener: { remove: () => Promise<void> } | undefined
+    const cleanup = async () => {
+      pendingVerifier = undefined
+      await appListener?.remove()
+      await browserListener?.remove()
+    }
+    const fail = async (error: Error) => {
+      if (settled) return
+      settled = true
+      await cleanup()
+      reject(error)
+    }
     const callback = async ({ url }: { url: string }) => {
       if (!url.startsWith(redirectUri)) return
-      await Browser.close()
       try {
+        await browserListener?.remove()
+        await Browser.close()
         const callback = new URL(url)
         if (callback.searchParams.get('state') !== state) throw new Error('認証状態を確認できませんでした')
         const code = callback.searchParams.get('code')
@@ -52,13 +67,20 @@ export async function requestNativeCalendarAccess(): Promise<string> {
         if (!response.ok) throw new Error('Google認証トークンを取得できませんでした')
         const token = await response.json() as { access_token?: string }
         if (!token.access_token) throw new Error('Googleアクセストークンがありません')
-        pendingVerifier = undefined
+        if (settled) return
+        settled = true
+        await cleanup()
         resolve(token.access_token)
       } catch (error) {
-        reject(error instanceof Error ? error : new Error('Google認証に失敗しました'))
+        await fail(error instanceof Error ? error : new Error('Google認証に失敗しました'))
       }
     }
     void App.addListener('appUrlOpen', callback)
-      .then((listener) => Browser.open({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` }).catch(reject).finally(() => listener.remove()))
+      .then(async (listener) => {
+        appListener = listener
+        browserListener = await Browser.addListener('browserFinished', () => void fail(new Error('Google認証をキャンセルしました')))
+        await Browser.open({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` })
+      })
+      .catch((error) => void fail(error instanceof Error ? error : new Error('Google認証画面を開けませんでした')))
   })
 }
