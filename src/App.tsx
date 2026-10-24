@@ -5,7 +5,7 @@ import { Bell, ChevronRight, Clock3, MapPin, Settings as SettingsIcon, Smartphon
 import { calculateDeparture, defaultSettings, sampleEvents, travelModeLabel, type CalendarEvent, type Settings, type TravelMode } from './domain'
 import { fetchCalendarEvents, requestCalendarAccess } from './googleCalendar'
 import { fetchTravelMinutes } from './googleRoutes'
-import { scheduleDepartureNotification } from './notifications'
+import { cancelDepartureNotifications, scheduleDepartureNotification } from './notifications'
 import { loadEvents, loadSettings, saveEvents, saveSettings } from './storage'
 
 function App() {
@@ -40,6 +40,9 @@ function App() {
     try {
       const accessToken = await requestCalendarAccess()
       const calendarEvents = await fetchCalendarEvents(accessToken)
+      const currentIds = new Set(events.map((event) => event.id))
+      const nextIds = new Set(calendarEvents.map((event) => event.id))
+      await cancelDepartureNotifications([...currentIds].filter((id) => !nextIds.has(id)))
       setEvents(calendarEvents)
       await saveEvents(calendarEvents)
       setCalendarStatus(`${calendarEvents.length}件の予定を取得しました`)

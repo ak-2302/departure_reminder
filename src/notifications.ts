@@ -3,10 +3,15 @@ import type { CalendarEvent, Settings } from './domain'
 
 const channelId = 'departure-reminders'
 
-function notificationId(eventId: string): number {
+export function notificationId(eventId: string): number {
   let hash = 0
   for (const character of eventId) hash = (hash * 31 + character.charCodeAt(0)) >>> 0
   return Math.max(1, hash % 2147483647)
+}
+
+export async function cancelDepartureNotifications(eventIds: string[]): Promise<void> {
+  if (!eventIds.length) return
+  await LocalNotifications.cancel({ notifications: eventIds.map((eventId) => ({ id: notificationId(eventId) })) })
 }
 
 export async function scheduleDepartureNotification(event: CalendarEvent, settings: Settings): Promise<void> {
