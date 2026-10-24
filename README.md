@@ -44,6 +44,19 @@ npx cap add ios
 
 `android/`と`ios/`は`npx cap add`で生成されるため、通常はリポジトリへ追加して管理します。Google APIの認証情報やAPIキーは、ソースコードやGitへ保存しないでください。
 
+release署名は、秘密鍵をGitへ置かず、Gradle実行時の環境変数から設定します。4つすべてが設定された場合だけ署名されます。
+
+```sh
+export ANDROID_KEYSTORE_PATH=/secure/path/release.jks
+export ANDROID_KEYSTORE_PASSWORD='キーストアのパスワード'
+export ANDROID_KEY_ALIAS='release'
+export ANDROID_KEY_PASSWORD='鍵のパスワード'
+cd android
+./gradlew assembleRelease
+```
+
+環境変数が未設定の場合、`assembleRelease`は未署名APKとして生成されます。配布前に署名済みであることを確認してください。
+
 ## ドキュメント
 
 - [仕様書](docs/仕様書.md)
