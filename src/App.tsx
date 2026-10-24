@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { App as CapacitorApp } from '@capacitor/app'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
+import { Network } from '@capacitor/network'
 import { Bell, ChevronRight, Clock3, MapPin, Settings as SettingsIcon, Smartphone, TrainFront, X } from 'lucide-react'
 import { calculateDeparture, defaultSettings, sampleEvents, travelModeLabel, type CalendarEvent, type Settings, type TravelMode } from './domain'
 import { fetchCalendarEvents, requestCalendarAccess } from './googleCalendar'
@@ -14,6 +16,9 @@ function App() {
   const [saved, setSaved] = useState(false)
   const [events, setEvents] = useState<CalendarEvent[]>(sampleEvents)
   const [calendarStatus, setCalendarStatus] = useState('サンプル予定を表示中')
+  const accessTokenRef = useRef<string | undefined>(undefined)
+  const eventsRef = useRef(events)
+  eventsRef.current = events
   const nextEvent = events[0]
   const departureAt = useMemo(() => nextEvent ? calculateDeparture(nextEvent, settings) : '--:--', [nextEvent, settings])
 
@@ -22,6 +27,20 @@ function App() {
     void loadEvents().then((storedEvents) => {
       if (storedEvents?.length) setEvents(storedEvents)
     })
+    const syncWhenActive = ({ isActive }: { isActive: boolean }) => {
+      if (isActive) void syncCalendar(accessTokenRef.current, true)
+    }
+    const syncWhenOnline = ({ connected }: { connected: boolean }) => {
+      if (connected) void syncCalendar(accessTokenRef.current, true)
+    }
+    let appListener: { remove: () => Promise<void> } | undefined
+    let networkListener: { remove: () => Promise<void> } | undefined
+    void CapacitorApp.addListener('appStateChange', syncWhenActive).then((listener) => { appListener = listener })
+    void Network.addListener('networkStatusChange', syncWhenOnline).then((listener) => { networkListener = listener })
+    return () => {
+      void appListener?.remove()
+      void networkListener?.remove()
+    }
   }, [])
 
   const updateSettings = async (next: Settings) => {
@@ -35,15 +54,16 @@ function App() {
     if (settings.vibrationEnabled) await Haptics.impact({ style: ImpactStyle.Light })
   }
 
-  const connectCalendar = async () => {
-    setCalendarStatus('Googleカレンダーに接続中…')
+  const syncCalendar = async (accessToken: string | undefined, automatic: boolean) => {
+    if (!accessToken) return
+    setCalendarStatus(automatic ? 'カレンダーを再同期中…' : 'Googleカレンダーに接続中…')
     try {
-      const accessToken = await requestCalendarAccess()
       const calendarEvents = await fetchCalendarEvents(accessToken)
-      const currentIds = new Set(events.map((event) => event.id))
+      const currentEvents = eventsRef.current
+      const currentIds = new Set(currentEvents.map((event) => event.id))
       const nextIds = new Set(calendarEvents.map((event) => event.id))
       await cancelDepartureNotifications([...currentIds].filter((id) => !nextIds.has(id)))
-      const currentById = new Map(events.map((event) => [event.id, event]))
+      const currentById = new Map(currentEvents.map((event) => [event.id, event]))
       const refreshedEvents = calendarEvents.map((event) => {
         const previous = currentById.get(event.id)
         if (!previous || previous.startAt === event.startAt) return { ...event, notificationEnabled: previous?.notificationEnabled, travelMinutes: previous?.travelMinutes ?? event.travelMinutes, travelUpdatedAt: previous?.travelUpdatedAt }
@@ -53,6 +73,17 @@ function App() {
       setEvents(refreshedEvents)
       await saveEvents(refreshedEvents)
       setCalendarStatus(`${calendarEvents.length}件の予定を取得しました`)
+    } catch (error) {
+      setCalendarStatus(error instanceof Error ? error.message : 'Googleカレンダーに接続できませんでした')
+    }
+  }
+
+  const connectCalendar = async () => {
+    setCalendarStatus('Googleカレンダーに接続中…')
+    try {
+      const accessToken = await requestCalendarAccess()
+      accessTokenRef.current = accessToken
+      await syncCalendar(accessToken, false)
     } catch (error) {
       setCalendarStatus(error instanceof Error ? error.message : 'Googleカレンダーに接続できませんでした')
     }
