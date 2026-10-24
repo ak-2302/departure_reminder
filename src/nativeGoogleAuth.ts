@@ -68,7 +68,7 @@ export async function requestNativeCalendarAccess(): Promise<string> {
         if (!response.ok) throw new Error('Google認証トークンを取得できませんでした')
         const token = await response.json() as { access_token?: string; refresh_token?: string }
         if (!token.access_token) throw new Error('Googleアクセストークンがありません')
-        if (token.refresh_token) await secureToken.saveRefreshToken({ token: token.refresh_token })
+        if (token.refresh_token) await secureToken.saveRefreshToken({ token: token.refresh_token, clientId })
         if (settled) return
         settled = true
         await cleanup()
