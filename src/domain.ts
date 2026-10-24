@@ -56,6 +56,11 @@ export const sampleEvents: CalendarEvent[] = [
 ]
 
 export function calculateDeparture(event: CalendarEvent, settings: Settings): string {
+  const totalMinutes = event.startAt ? new Date(event.startAt).getTime() / 60_000 : NaN
+  if (Number.isFinite(totalMinutes)) {
+    const departure = new Date((totalMinutes - event.travelMinutes - settings.bufferMinutes - event.preparationMinutes) * 60_000)
+    return departure.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false })
+  }
   const [hours, minutes] = event.startsAt.split(':').map(Number)
   const departureMinutes = hours * 60 + minutes - event.travelMinutes - settings.bufferMinutes - event.preparationMinutes
   const normalized = (departureMinutes + 24 * 60) % (24 * 60)

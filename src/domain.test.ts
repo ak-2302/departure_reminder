@@ -18,4 +18,8 @@ describe('calculateDeparture', () => {
   it('日付をまたぐ計算を24時間表記へ正規化する', () => {
     expect(calculateDeparture({ ...event, startsAt: '00:20', travelMinutes: 30 }, defaultSettings)).toBe('23:25')
   })
+
+  it('実予定のISO日時を優先して日付境界を計算する', () => {
+    expect(calculateDeparture({ ...event, startAt: '2026-10-25T00:20:00+09:00', travelMinutes: 30 }, defaultSettings)).toBe('23:25')
+  })
 })
