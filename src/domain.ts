@@ -16,6 +16,7 @@ export type CalendarEvent = {
   location: string
   travelMinutes: number
   travelUpdatedAt?: string
+  notificationEnabled?: boolean
   preparationMinutes: number
 }
 

@@ -43,8 +43,15 @@ function App() {
       const currentIds = new Set(events.map((event) => event.id))
       const nextIds = new Set(calendarEvents.map((event) => event.id))
       await cancelDepartureNotifications([...currentIds].filter((id) => !nextIds.has(id)))
-      setEvents(calendarEvents)
-      await saveEvents(calendarEvents)
+      const currentById = new Map(events.map((event) => [event.id, event]))
+      const refreshedEvents = calendarEvents.map((event) => {
+        const previous = currentById.get(event.id)
+        if (!previous || previous.startAt === event.startAt) return { ...event, notificationEnabled: previous?.notificationEnabled, travelMinutes: previous?.travelMinutes ?? event.travelMinutes, travelUpdatedAt: previous?.travelUpdatedAt }
+        if (previous.notificationEnabled) void cancelDepartureNotifications([event.id])
+        return event
+      })
+      setEvents(refreshedEvents)
+      await saveEvents(refreshedEvents)
       setCalendarStatus(`${calendarEvents.length}件の予定を取得しました`)
     } catch (error) {
       setCalendarStatus(error instanceof Error ? error.message : 'Googleカレンダーに接続できませんでした')
@@ -59,6 +66,7 @@ function App() {
       const updatedEvents = events.map((event, index) => index === 0 ? { ...event, travelMinutes, travelUpdatedAt: new Date().toISOString() } : event)
       setEvents(updatedEvents)
       await saveEvents(updatedEvents)
+      if (nextEvent.notificationEnabled) await scheduleDepartureNotification(updatedEvents[0], settings)
       setCalendarStatus(`経路を更新しました（移動 ${travelMinutes}分）`)
     } catch (error) {
       setCalendarStatus(error instanceof Error ? error.message : '経路を取得できませんでした')
@@ -70,6 +78,9 @@ function App() {
     setCalendarStatus('通知を設定中…')
     try {
       await scheduleDepartureNotification(nextEvent, settings)
+      const updatedEvents = events.map((event, index) => index === 0 ? { ...event, notificationEnabled: true } : event)
+      setEvents(updatedEvents)
+      await saveEvents(updatedEvents)
       setCalendarStatus('出発通知を設定しました')
     } catch (error) {
       setCalendarStatus(error instanceof Error ? error.message : '通知を設定できませんでした')
