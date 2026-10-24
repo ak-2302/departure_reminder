@@ -27,6 +27,12 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="ak-2302.github.io" android:pathPrefix="/departure_reminder/oauth2redirect" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="jp.ak2302.departurereminder" android:pathPrefix="/oauth2redirect" />
+            </intent-filter>
 
         </activity>
 

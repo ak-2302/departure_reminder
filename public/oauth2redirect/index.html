@@ -1,5 +1,10 @@
 <!doctype html>
 <html lang="ja">
   <head><meta charset="UTF-8"><title>認証を完了しています</title></head>
-  <body><p>アプリへ戻っています。この画面が残る場合は、出発リマインダーを開いてください。</p></body>
+  <body>
+    <p>アプリへ戻っています。この画面が残る場合は、出発リマインダーを開いてください。</p>
+    <script>
+      window.location.replace(`jp.ak2302.departurereminder:/oauth2redirect${window.location.search}${window.location.hash}`)
+    </script>
+  </body>
 </html>

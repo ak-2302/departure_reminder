@@ -4,6 +4,7 @@ import { secureToken } from './secureToken'
 
 const scope = 'https://www.googleapis.com/auth/calendar.events.readonly'
 const redirectUri = 'https://ak-2302.github.io/departure_reminder/oauth2redirect'
+const appCallbackUri = 'jp.ak2302.departurereminder:/oauth2redirect'
 let pendingVerifier: string | undefined
 
 function base64Url(bytes: Uint8Array): string {
@@ -52,7 +53,7 @@ export async function requestNativeCalendarAccess(): Promise<string> {
       reject(error)
     }
     const callback = async ({ url }: { url: string }) => {
-      if (!url.startsWith(redirectUri)) return
+      if (!url.startsWith(appCallbackUri)) return
       try {
         await browserListener?.remove()
         await Browser.close()
