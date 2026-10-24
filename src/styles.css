@@ -66,6 +66,12 @@ button { cursor: pointer; }
 .primary-button { width: 100%; margin-top: 24px; padding: 14px; color: white; border: 0; border-radius: 10px; background: var(--accent); font-weight: 800; }
 .secondary-button { width: 100%; margin-top: 10px; padding: 13px; color: var(--accent); border: 1px solid #b7d9d3; border-radius: 10px; background: var(--accent-soft); font-weight: 800; }
 .danger-button { color: #a33a32; border-color: #d7aaa4; }
+.detail-dialog { width: min(100% - 32px, 440px); margin: auto; padding: 22px; border-radius: 20px; background: var(--surface); box-shadow: 0 24px 60px rgba(25, 40, 38, .18); }
+.detail-location { display: flex; align-items: center; gap: 7px; color: var(--muted); }
+.detail-grid { display: grid; grid-template-columns: 1fr auto; gap: 12px 18px; margin-top: 22px; padding: 16px; border-radius: 14px; background: var(--accent-soft); }
+.detail-grid span { color: var(--muted); }
+.detail-grid strong { color: var(--ink); }
+.detail-status { margin: 14px 0 0; color: var(--muted); font-size: .84rem; }
 
 @media (max-width: 600px) {
   .main-content { padding-top: 40px; }

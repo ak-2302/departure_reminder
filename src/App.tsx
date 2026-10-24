@@ -16,6 +16,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [saved, setSaved] = useState(false)
   const [events, setEvents] = useState<CalendarEvent[]>(sampleEvents)
+  const [detailEvent, setDetailEvent] = useState<CalendarEvent | null>(null)
   const [calendarStatus, setCalendarStatus] = useState('サンプル予定を表示中')
   const accessTokenRef = useRef<string | undefined>(undefined)
   const eventsRef = useRef(events)
@@ -44,6 +45,7 @@ function App() {
       if (!event) return
       const reorderedEvents = [event, ...eventsRef.current.filter((item) => item.id !== event.id)]
       setEvents(reorderedEvents)
+      setDetailEvent(event)
       setCalendarStatus(`「${event.title}」の予定を開きました`)
     }).then((listener) => { notificationListener = listener })
     return () => {
@@ -161,7 +163,7 @@ function App() {
               <p className="event-start">{nextEvent.startsAt}開始</p>
               <h1>{nextEvent.location}</h1>
             </div>
-            <button className="text-action" onClick={() => setSettingsOpen(true)}>
+            <button className="text-action" onClick={() => setDetailEvent(nextEvent)}>
               予定の詳細 <ChevronRight size={22} />
             </button>
           </div>
@@ -204,6 +206,7 @@ function App() {
       </main>
 
       {saved && <div className="save-toast" role="status">設定を保存しました</div>}
+      {detailEvent && <EventDetail event={detailEvent} settings={settings} onClose={() => setDetailEvent(null)} />}
       {settingsOpen && <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} onSave={updateSettings} onConnectCalendar={() => void connectCalendar()} onDisconnectCalendar={() => void disconnectCalendar()} />}
     </div>
   )
@@ -211,6 +214,26 @@ function App() {
 
 function Breakdown({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return <div className="breakdown-item"><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>
+}
+
+function EventDetail({ event, settings, onClose }: { event: CalendarEvent; settings: Settings; onClose: () => void }) {
+  const departure = calculateDeparture(event, settings)
+  return <div className="panel-backdrop" role="presentation" onMouseDown={(mouseEvent) => mouseEvent.target === mouseEvent.currentTarget && onClose()}>
+    <section className="detail-dialog" role="dialog" aria-modal="true" aria-label="予定の詳細">
+      <div className="panel-header"><h2>予定の詳細</h2><button className="icon-button" aria-label="予定の詳細を閉じる" onClick={onClose}><X size={22} /></button></div>
+      <p className="event-start">{event.startsAt}開始</p>
+      <h2>{event.title}</h2>
+      <p className="detail-location"><MapPin size={17} />{event.location}</p>
+      <div className="detail-grid">
+        <span>出発時刻</span><strong>{departure}</strong>
+        <span>移動時間</span><strong>{event.travelMinutes}分</strong>
+        <span>準備時間</span><strong>{event.preparationMinutes}分</strong>
+        <span>余裕時間</span><strong>{settings.bufferMinutes}分</strong>
+      </div>
+      <p className="detail-status">{event.travelUpdatedAt ? `経路更新：${new Date(event.travelUpdatedAt).toLocaleString('ja-JP')}` : '経路は未取得です'}</p>
+      <p className="detail-status">通知：{event.notificationEnabled ? '設定済み' : '未設定'}</p>
+    </section>
+  </div>
 }
 
 function SettingsPanel({ settings, onClose, onSave, onConnectCalendar, onDisconnectCalendar }: { settings: Settings; onClose: () => void; onSave: (settings: Settings) => Promise<void>; onConnectCalendar: () => void; onDisconnectCalendar: () => void }) {
