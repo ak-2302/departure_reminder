@@ -65,6 +65,7 @@ button { cursor: pointer; }
 .toggle-row input { width: 21px; height: 21px; accent-color: var(--accent); }
 .primary-button { width: 100%; margin-top: 24px; padding: 14px; color: white; border: 0; border-radius: 10px; background: var(--accent); font-weight: 800; }
 .secondary-button { width: 100%; margin-top: 10px; padding: 13px; color: var(--accent); border: 1px solid #b7d9d3; border-radius: 10px; background: var(--accent-soft); font-weight: 800; }
+.danger-button { color: #a33a32; border-color: #d7aaa4; }
 
 @media (max-width: 600px) {
   .main-content { padding-top: 40px; }

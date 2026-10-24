@@ -8,7 +8,7 @@ import { calculateDeparture, defaultSettings, sampleEvents, travelModeLabel, typ
 import { fetchCalendarEvents, requestCalendarAccess } from './googleCalendar'
 import { fetchTravelMinutes } from './googleRoutes'
 import { cancelDepartureNotifications, scheduleDepartureNotification } from './notifications'
-import { loadEvents, loadSettings, saveEvents, saveSettings } from './storage'
+import { clearEvents, loadEvents, loadSettings, saveEvents, saveSettings } from './storage'
 
 function App() {
   const [settings, setSettings] = useState<Settings>(defaultSettings)
@@ -87,6 +87,15 @@ function App() {
     } catch (error) {
       setCalendarStatus(error instanceof Error ? error.message : 'Googleカレンダーに接続できませんでした')
     }
+  }
+
+  const disconnectCalendar = async () => {
+    await cancelDepartureNotifications(events.map((event) => event.id))
+    accessTokenRef.current = undefined
+    await clearEvents()
+    setEvents([])
+    setCalendarStatus('Googleカレンダーとの連携を解除しました')
+    setSettingsOpen(false)
   }
 
   const refreshRoute = async () => {
@@ -185,7 +194,7 @@ function App() {
       </main>
 
       {saved && <div className="save-toast" role="status">設定を保存しました</div>}
-      {settingsOpen && <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} onSave={updateSettings} onConnectCalendar={() => void connectCalendar()} />}
+      {settingsOpen && <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} onSave={updateSettings} onConnectCalendar={() => void connectCalendar()} onDisconnectCalendar={() => void disconnectCalendar()} />}
     </div>
   )
 }
@@ -194,7 +203,7 @@ function Breakdown({ icon, label, value }: { icon: ReactNode; label: string; val
   return <div className="breakdown-item"><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>
 }
 
-function SettingsPanel({ settings, onClose, onSave, onConnectCalendar }: { settings: Settings; onClose: () => void; onSave: (settings: Settings) => Promise<void>; onConnectCalendar: () => void }) {
+function SettingsPanel({ settings, onClose, onSave, onConnectCalendar, onDisconnectCalendar }: { settings: Settings; onClose: () => void; onSave: (settings: Settings) => Promise<void>; onConnectCalendar: () => void; onDisconnectCalendar: () => void }) {
   const [draft, setDraft] = useState(settings)
   const modes: TravelMode[] = ['transit', 'walking', 'bicycling', 'driving']
   return (
@@ -207,6 +216,7 @@ function SettingsPanel({ settings, onClose, onSave, onConnectCalendar }: { setti
         <label>余裕時間（分）<input type="number" min="0" value={draft.bufferMinutes} onChange={(event) => setDraft({ ...draft, bufferMinutes: Number(event.target.value) || 0 })} /></label>
         <label className="toggle-row"><span><Bell size={19} />振動通知</span><input type="checkbox" checked={draft.vibrationEnabled} onChange={(event) => setDraft({ ...draft, vibrationEnabled: event.target.checked })} /></label>
         <button className="secondary-button" onClick={onConnectCalendar}>Googleカレンダーに接続</button>
+        <button className="secondary-button danger-button" onClick={onDisconnectCalendar}>Google連携を解除してデータを削除</button>
         <button className="primary-button" onClick={() => void onSave(draft).then(onClose)}>保存する</button>
       </aside>
     </div>

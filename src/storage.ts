@@ -32,3 +32,7 @@ export async function loadEvents(): Promise<CalendarEvent[] | null> {
 export async function saveEvents(events: CalendarEvent[]): Promise<void> {
   await Preferences.set({ key: eventsKey, value: JSON.stringify(events) })
 }
+
+export async function clearEvents(): Promise<void> {
+  await Preferences.remove({ key: eventsKey })
+}
