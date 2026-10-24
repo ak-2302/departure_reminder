@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">出発リマインダー</string>
+    <string name="title_activity_main">出発リマインダー</string>
+    <string name="package_name">jp.ak2302.departurereminder</string>
+    <string name="custom_url_scheme">jp.ak2302.departurereminder</string>
+</resources>

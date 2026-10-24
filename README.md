@@ -1,35 +1,40 @@
 # departure_reminder
 
-Googleカレンダーの予定とGoogle Mapsの経路情報から、間に合う出発時刻を知らせるAndroidアプリです。
+Googleカレンダーの予定とGoogle Mapsの経路情報から、間に合う出発時刻を知らせるReact + Capacitorアプリです。
 
 ## 開発環境
 
-- Android StudioまたはGradle 8.11.1
-- JDK 17
-- Android SDK Platform 35
-- Android SDK Build Tools 35.0.0以上
+- Node.js 20以上
+- npm
+- Android Studio（Android版をビルドする場合）
+- Xcode（iOS版をビルドする場合）
 
-## ビルド
-
-Android SDKの場所を環境変数で指定して、debug APKを作成します。
+## セットアップ
 
 ```sh
-export ANDROID_HOME="$HOME/Library/Android/sdk"
-export ANDROID_SDK_ROOT="$ANDROID_HOME"
-./gradlew assembleDebug
+npm install
 ```
 
-生成物は`app/build/outputs/apk/debug/app-debug.apk`です。
-
-## テスト・Lint
+## Web開発・ビルド
 
 ```sh
-./gradlew test lint
+npm run dev
+npm run build
+npm run lint
+npm test
 ```
+
+## Capacitor
+
+```sh
+npm run cap:sync
+npx cap add android
+npx cap add ios
+```
+
+`android/`と`ios/`は`npx cap add`で生成されるため、通常はリポジトリへ追加して管理します。Google APIの認証情報やAPIキーは、ソースコードやGitへ保存しないでください。
 
 ## ドキュメント
 
 - [仕様書](docs/仕様書.md)
 - [作業計画書](docs/作業計画書.md)
-
-Google APIの認証情報やAPIキーは、ソースコードやGitへ保存しないでください。
