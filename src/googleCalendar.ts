@@ -1,4 +1,6 @@
 import type { CalendarEvent } from './domain'
+import { Capacitor } from '@capacitor/core'
+import { requestNativeCalendarAccess } from './nativeGoogleAuth'
 
 const calendarScope = 'https://www.googleapis.com/auth/calendar.events.readonly'
 const scriptUrl = 'https://accounts.google.com/gsi/client'
@@ -41,6 +43,7 @@ function loadIdentityScript(): Promise<void> {
 }
 
 export async function requestCalendarAccess(): Promise<string> {
+  if (Capacitor.isNativePlatform()) return requestNativeCalendarAccess()
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
   if (!clientId) throw new Error('VITE_GOOGLE_CLIENT_IDが設定されていません')
   await loadIdentityScript()
