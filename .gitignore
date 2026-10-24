@@ -1,0 +1,11 @@
+.gradle/
+build/
+**/build/
+local.properties
+.idea/
+*.iml
+
+# Local signing and secrets
+*.jks
+*.keystore
+google-services.json
