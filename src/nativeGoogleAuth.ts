@@ -1,5 +1,6 @@
 import { App } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
+import { secureToken } from './secureToken'
 
 const scope = 'https://www.googleapis.com/auth/calendar.events.readonly'
 const redirectUri = 'https://ak-2302.github.io/departure_reminder/oauth2redirect'
@@ -65,8 +66,9 @@ export async function requestNativeCalendarAccess(): Promise<string> {
           body: new URLSearchParams({ code, client_id: clientId, redirect_uri: redirectUri, grant_type: 'authorization_code', code_verifier: pendingVerifier }),
         })
         if (!response.ok) throw new Error('Google認証トークンを取得できませんでした')
-        const token = await response.json() as { access_token?: string }
+        const token = await response.json() as { access_token?: string; refresh_token?: string }
         if (!token.access_token) throw new Error('Googleアクセストークンがありません')
+        if (token.refresh_token) await secureToken.saveRefreshToken({ token: token.refresh_token })
         if (settled) return
         settled = true
         await cleanup()

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { App as CapacitorApp } from '@capacitor/app'
+import { Capacitor } from '@capacitor/core'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
 import { Network } from '@capacitor/network'
 import { LocalNotifications } from '@capacitor/local-notifications'
@@ -12,6 +13,7 @@ import { fetchTravelMinutes } from './googleRoutes'
 import { cancelDepartureNotifications, getNotificationPermission, notificationId, scheduleDepartureNotification } from './notifications'
 import { appSettings } from './appSettings'
 import { clearEvents, loadEvents, loadSettings, saveEvents, saveSettings } from './storage'
+import { secureToken } from './secureToken'
 
 function App() {
   const [settings, setSettings] = useState<Settings>(defaultSettings)
@@ -115,6 +117,7 @@ function App() {
   const disconnectCalendar = async () => {
     await cancelDepartureNotifications(events.map((event) => event.id))
     accessTokenRef.current = undefined
+    if (Capacitor.getPlatform() === 'android') await secureToken.clearRefreshToken()
     await clearEvents()
     setEvents([])
     setCalendarStatus('Googleカレンダーとの連携を解除しました')

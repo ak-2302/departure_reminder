@@ -6,6 +6,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(android.os.Bundle savedInstanceState) {
         registerPlugin(AppSettingsPlugin.class);
+        registerPlugin(SecureTokenPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }
