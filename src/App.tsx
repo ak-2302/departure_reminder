@@ -15,6 +15,7 @@ import { cancelDepartureNotifications, getNotificationPermission, notificationId
 import { appSettings } from './appSettings'
 import { clearEvents, loadEvents, loadSettings, saveEvents, saveSettings } from './storage'
 import { secureToken } from './secureToken'
+import { formatLocationForRoutes, getCurrentLocation } from './location'
 
 function App() {
   const [settings, setSettings] = useState<Settings>(defaultSettings)
@@ -139,14 +140,15 @@ function App() {
 
   const refreshRoute = async () => {
     if (!nextEvent) return
-    setCalendarStatus('Google Mapsで経路を取得中…')
+    setCalendarStatus('現在地を取得して経路を計算中…')
     try {
-      const travelMinutes = await fetchTravelMinutes(settings.origin, nextEvent.location, settings.travelMode, nextEvent.startAt)
+      const currentLocation = await getCurrentLocation()
+      const travelMinutes = await fetchTravelMinutes(formatLocationForRoutes(currentLocation), nextEvent.location, settings.travelMode, nextEvent.startAt)
       const updatedEvents = events.map((event, index) => index === 0 ? { ...event, travelMinutes, travelUpdatedAt: new Date().toISOString() } : event)
       setEvents(updatedEvents)
       await saveEvents(updatedEvents)
       if (nextEvent.notificationEnabled) await scheduleDepartureNotification(updatedEvents[0], settings)
-      setCalendarStatus(`経路を更新しました（移動 ${travelMinutes}分）`)
+      setCalendarStatus(`現在地からの経路を更新しました（移動 ${travelMinutes}分）`)
     } catch (error) {
       setCalendarStatus(error instanceof Error ? error.message : '経路を取得できませんでした')
     }
@@ -250,8 +252,10 @@ function Breakdown({ icon, label, value }: { icon: ReactNode; label: string; val
 function EventDetail({ event, settings, onClose }: { event: CalendarEvent; settings: Settings; onClose: () => void }) {
   const departure = calculateDeparture(event, settings)
   const openMaps = () => {
-    const params = new URLSearchParams({ api: '1', origin: settings.origin, destination: event.location, travelmode: settings.travelMode === 'transit' ? 'transit' : settings.travelMode })
-    void Browser.open({ url: `https://www.google.com/maps/dir/?${params}` })
+    void getCurrentLocation().then((location) => {
+      const params = new URLSearchParams({ api: '1', origin: formatLocationForRoutes(location), destination: event.location, travelmode: settings.travelMode === 'transit' ? 'transit' : settings.travelMode })
+      return Browser.open({ url: `https://www.google.com/maps/dir/?${params}` })
+    }).catch(() => undefined)
   }
   const dialogRef = useRef<HTMLElement>(null)
   useDialogAccessibility(dialogRef, onClose)
@@ -269,7 +273,7 @@ function EventDetail({ event, settings, onClose }: { event: CalendarEvent; setti
       </div>
       <p className="detail-status" id="event-detail-description">{event.travelUpdatedAt ? `経路更新：${new Date(event.travelUpdatedAt).toLocaleString('ja-JP')}` : '経路は未取得です'}</p>
       <p className="detail-status">通知：{event.notificationEnabled ? '設定済み' : '未設定'}</p>
-      <button className="primary-button" onClick={openMaps} disabled={!settings.origin.trim()}>Google Mapsで経路を開く</button>
+      <button className="primary-button" onClick={openMaps}>現在地からGoogle Mapsで経路を開く</button>
     </section>
   </div>
 }
@@ -305,7 +309,7 @@ function SettingsPanel({ settings, notificationPermission, onClose, onSave, onCo
     <div className="panel-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <aside ref={dialogRef} className="settings-panel" role="dialog" aria-modal="true" aria-label="設定">
         <div className="panel-header"><h2>設定</h2><button className="icon-button" aria-label="設定を閉じる" onClick={onClose}><X size={22} /></button></div>
-        <label>出発地点<input value={draft.origin} onChange={(event) => setDraft({ ...draft, origin: event.target.value })} placeholder="自宅の住所" /></label>
+        <p className="location-description">出発地点は端末の現在地を使用します。経路更新時に位置情報の許可を確認します。</p>
         <label>移動手段<select value={draft.travelMode} onChange={(event) => setDraft({ ...draft, travelMode: event.target.value as TravelMode })}>{modes.map((mode) => <option value={mode} key={mode}>{travelModeLabel(mode)}</option>)}</select></label>
         <label>準備時間（分）<input type="number" min="0" value={draft.preparationMinutes} onChange={(event) => setDraft({ ...draft, preparationMinutes: Number(event.target.value) || 0 })} /></label>
         <label>余裕時間（分）<input type="number" min="0" value={draft.bufferMinutes} onChange={(event) => setDraft({ ...draft, bufferMinutes: Number(event.target.value) || 0 })} /></label>

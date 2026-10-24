@@ -75,6 +75,7 @@ button { cursor: pointer; }
 .detail-status { margin: 14px 0 0; color: var(--muted); font-size: .84rem; }
 .detail-dialog .primary-button { margin-top: 18px; }
 .permission-status { margin: 8px 0 0; color: var(--muted); font-size: .84rem; }
+.location-description { margin: 18px 0; color: var(--muted); font-size: .92rem; line-height: 1.6; }
 
 @media (max-width: 600px) {
   .main-content { padding-top: 40px; }
