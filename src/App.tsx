@@ -5,6 +5,7 @@ import { Bell, ChevronRight, Clock3, MapPin, Settings as SettingsIcon, Smartphon
 import { calculateDeparture, defaultSettings, sampleEvents, travelModeLabel, type CalendarEvent, type Settings, type TravelMode } from './domain'
 import { fetchCalendarEvents, requestCalendarAccess } from './googleCalendar'
 import { fetchTravelMinutes } from './googleRoutes'
+import { scheduleDepartureNotification } from './notifications'
 import { loadSettings, saveSettings } from './storage'
 
 function App() {
@@ -55,6 +56,17 @@ function App() {
     }
   }
 
+  const scheduleNotification = async () => {
+    if (!nextEvent) return
+    setCalendarStatus('通知を設定中…')
+    try {
+      await scheduleDepartureNotification(nextEvent, settings)
+      setCalendarStatus('出発通知を設定しました')
+    } catch (error) {
+      setCalendarStatus(error instanceof Error ? error.message : '通知を設定できませんでした')
+    }
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -84,6 +96,7 @@ function App() {
             </button>
           </div>
           <button className="secondary-button route-button" onClick={() => void refreshRoute()}>移動時間を更新</button>
+          <button className="secondary-button route-button" onClick={() => void scheduleNotification()}>この予定の通知を設定</button>
           <div className="event-breakdown">
             <Breakdown icon={<TrainFront size={24} />} label="移動" value={`${nextEvent.travelMinutes}分`} />
             <Breakdown icon={<Clock3 size={24} />} label="準備" value={`${nextEvent.preparationMinutes}分`} />

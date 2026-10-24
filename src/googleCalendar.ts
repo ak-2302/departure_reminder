@@ -96,6 +96,7 @@ function toCalendarEvent(event: GoogleCalendarEvent): CalendarEvent[] {
   return [{
     id: event.id,
     title: event.summary || '予定',
+    startAt: date.toISOString(),
     startsAt: date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
     location: event.location,
     travelMinutes: 0,

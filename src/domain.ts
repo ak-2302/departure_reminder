@@ -11,6 +11,7 @@ export type Settings = {
 export type CalendarEvent = {
   id: string
   title: string
+  startAt?: string
   startsAt: string
   location: string
   travelMinutes: number
