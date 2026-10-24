@@ -67,15 +67,17 @@ public class CalendarSyncWorker extends Worker {
 
     private void syncEvents(String accessToken) throws Exception {
         Instant now = Instant.now();
-        String url = "https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&showDeleted=false&timeMin=" + encode(now.toString()) + "&timeMax=" + encode(now.plus(Duration.ofDays(7)).toString()) + "&maxResults=50";
-        JSONObject response = new JSONObject(get(url, accessToken));
-        JSONArray items = response.optJSONArray("items");
+        String baseUrl = "https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&showDeleted=false&timeMin=" + encode(now.toString()) + "&timeMax=" + encode(now.plus(Duration.ofDays(7)).toString()) + "&maxResults=50";
         JSONArray previous = readArray(EVENTS_KEY);
         Map<String, JSONObject> previousById = new HashMap<>();
         for (int i = 0; i < previous.length(); i++) previousById.put(previous.getJSONObject(i).optString("id"), previous.getJSONObject(i));
         JSONArray next = new JSONArray();
-        if (items != null) {
-            for (int i = 0; i < items.length(); i++) {
+        String pageToken = null;
+        for (int page = 0; page < 10; page++) {
+            String url = baseUrl + (pageToken == null ? "" : "&pageToken=" + encode(pageToken));
+            JSONObject response = new JSONObject(get(url, accessToken));
+            JSONArray items = response.optJSONArray("items");
+            if (items != null) for (int i = 0; i < items.length(); i++) {
                 JSONObject item = items.getJSONObject(i);
                 String id = item.optString("id");
                 String startAt = item.optJSONObject("start") == null ? "" : item.optJSONObject("start").optString("dateTime", "");
@@ -92,6 +94,8 @@ public class CalendarSyncWorker extends Worker {
                 }
                 next.put(event);
             }
+            pageToken = response.optString("nextPageToken", "");
+            if (pageToken.isEmpty()) break;
         }
         writeArray(EVENTS_KEY, next);
         scheduleDueNotifications(next, readObject(SETTINGS_KEY));
