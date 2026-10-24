@@ -1,6 +1,7 @@
 import type { CalendarEvent } from './domain'
 import { Capacitor } from '@capacitor/core'
 import { requestNativeCalendarAccess } from './nativeGoogleAuth'
+import { fetchWithRetry } from './network'
 
 const calendarScope = 'https://www.googleapis.com/auth/calendar.events.readonly'
 const scriptUrl = 'https://accounts.google.com/gsi/client'
@@ -81,7 +82,7 @@ export async function fetchCalendarEvents(accessToken: string): Promise<Calendar
   for (let page = 0; page < 10; page += 1) {
     const params = new URLSearchParams(baseParams)
     if (pageToken) params.set('pageToken', pageToken)
-    const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
+    const response = await fetchWithRetry(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
     if (response.status === 401) throw new Error('Google認証の期限が切れています。再接続してください')

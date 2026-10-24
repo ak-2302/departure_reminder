@@ -1,4 +1,5 @@
 import type { TravelMode } from './domain'
+import { fetchWithRetry } from './network'
 
 const routesEndpoint = 'https://routes.googleapis.com/directions/v2:computeRoutes'
 const cacheTtlMs = 10 * 60 * 1000
@@ -44,7 +45,7 @@ async function requestTravelMinutes(origin: string, destination: string, mode: T
     if (departureTime) body.departureTime = departureTime
   }
 
-  const response = await fetch(routesEndpoint, {
+  const response = await fetchWithRetry(routesEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
