@@ -157,26 +157,67 @@ public class CalendarSyncWorker extends Worker {
     private String encode(String value) throws Exception { return URLEncoder.encode(value, StandardCharsets.UTF_8.name()); }
 
     private String get(String urlValue, String accessToken) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(urlValue).openConnection();
-        connection.setRequestProperty("Authorization", "Bearer " + accessToken);
-        return read(connection);
+        return requestWithRetry(urlValue, "GET", accessToken, null);
     }
 
     private String post(String urlValue, String body) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(urlValue).openConnection();
-        connection.setRequestMethod("POST"); connection.setDoOutput(true); connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-        try (OutputStream output = connection.getOutputStream()) { output.write(body.getBytes(StandardCharsets.UTF_8)); }
-        return read(connection);
+        return requestWithRetry(urlValue, "POST", null, body);
+    }
+
+    private String requestWithRetry(String urlValue, String method, String accessToken, String body) throws Exception {
+        Exception last = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            HttpURLConnection connection = null;
+            try {
+                connection = (HttpURLConnection) new URL(urlValue).openConnection();
+                connection.setConnectTimeout(12_000);
+                connection.setReadTimeout(12_000);
+                connection.setRequestMethod(method);
+                if (accessToken != null) connection.setRequestProperty("Authorization", "Bearer " + accessToken);
+                if (body != null) {
+                    connection.setDoOutput(true);
+                    connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                    try (OutputStream output = connection.getOutputStream()) { output.write(body.getBytes(StandardCharsets.UTF_8)); }
+                }
+                return read(connection);
+            } catch (HttpStatusException error) {
+                last = error;
+                if (!retryable(error.status) || attempt == 2) throw error;
+            } catch (Exception error) {
+                last = error;
+                if (attempt == 2) throw error;
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+            Thread.sleep(250L * (attempt + 1));
+        }
+        throw last == null ? new IllegalStateException("通信に失敗しました") : last;
+    }
+
+    private boolean retryable(int status) {
+        return status == 408 || status == 429 || status >= 500;
     }
 
     private String read(HttpURLConnection connection) throws Exception {
         int status = connection.getResponseCode();
         InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
-        if (stream == null || status >= 400) throw new IllegalStateException("HTTP " + status);
+        if (stream == null || status >= 400) {
+            connection.disconnect();
+            throw new HttpStatusException(status);
+        }
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
             StringBuilder result = new StringBuilder(); String line;
             while ((line = reader.readLine()) != null) result.append(line);
+            connection.disconnect();
             return result.toString();
+        }
+    }
+
+    private static class HttpStatusException extends Exception {
+        final int status;
+
+        HttpStatusException(int status) {
+            this.status = status;
         }
     }
 }
