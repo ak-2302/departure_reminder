@@ -61,6 +61,8 @@ function App() {
       void networkListener?.remove()
       void notificationListener?.remove()
     }
+    // [AI] 同期処理は認証トークンと予定をrefから読むため、起動時に登録したリスナーを再生成しない。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -97,6 +99,9 @@ function App() {
       setEvents(refreshedEvents)
       await saveEvents(refreshedEvents)
       setCalendarDataStale(false)
+      if (await getNotificationPermission() === 'granted') {
+        await Promise.all(refreshedEvents.filter((event) => event.notificationEnabled && event.travelUpdatedAt).map((event) => scheduleDepartureNotification(event, settings).catch(() => undefined)))
+      }
       setCalendarStatus(`${calendarEvents.length}件の予定を取得しました`)
     } catch (error) {
       setCalendarDataStale(true)
