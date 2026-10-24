@@ -3,11 +3,12 @@ import type { ReactNode } from 'react'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
 import { Network } from '@capacitor/network'
+import { LocalNotifications } from '@capacitor/local-notifications'
 import { Bell, ChevronRight, Clock3, MapPin, Settings as SettingsIcon, Smartphone, TrainFront, X } from 'lucide-react'
 import { calculateDeparture, defaultSettings, sampleEvents, travelModeLabel, type CalendarEvent, type Settings, type TravelMode } from './domain'
 import { fetchCalendarEvents, requestCalendarAccess } from './googleCalendar'
 import { fetchTravelMinutes } from './googleRoutes'
-import { cancelDepartureNotifications, scheduleDepartureNotification } from './notifications'
+import { cancelDepartureNotifications, notificationId, scheduleDepartureNotification } from './notifications'
 import { clearEvents, loadEvents, loadSettings, saveEvents, saveSettings } from './storage'
 
 function App() {
@@ -35,11 +36,20 @@ function App() {
     }
     let appListener: { remove: () => Promise<void> } | undefined
     let networkListener: { remove: () => Promise<void> } | undefined
+    let notificationListener: { remove: () => Promise<void> } | undefined
     void CapacitorApp.addListener('appStateChange', syncWhenActive).then((listener) => { appListener = listener })
     void Network.addListener('networkStatusChange', syncWhenOnline).then((listener) => { networkListener = listener })
+    void LocalNotifications.addListener('localNotificationActionPerformed', ({ notification }) => {
+      const event = eventsRef.current.find((item) => notificationId(item.id) === notification.id)
+      if (!event) return
+      const reorderedEvents = [event, ...eventsRef.current.filter((item) => item.id !== event.id)]
+      setEvents(reorderedEvents)
+      setCalendarStatus(`「${event.title}」の予定を開きました`)
+    }).then((listener) => { notificationListener = listener })
     return () => {
       void appListener?.remove()
       void networkListener?.remove()
+      void notificationListener?.remove()
     }
   }, [])
 
