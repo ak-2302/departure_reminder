@@ -5,5 +5,5 @@
 - 確認日：2026-10-24
 - 現象：`computeRoutes` にAndroidアプリ制限付きAPIキーを渡すと、`API_KEY_ANDROID_APP_BLOCKED`（`androidPackage: <empty>`）で403になる。
 - 原因：現在の実装はCapacitor WebViewのJavaScriptからRoutes API RESTエンドポイントを直接呼び出しており、Google側でAndroidパッケージ情報を検証できない。
-- 影響：キーのAndroidアプリ制限を維持したままでは、実機・エミュレーターから経路時間を取得できない。
-- 方針候補：サーバー側プロキシでAPIキーを保護する、またはAndroidネイティブ通信経路で成立する構成を調査する。アプリ制限なしのキーへ変更する案は、キー露出と課金リスクが増えるため採用しない。
+- 対応：Androidアプリ識別ヘッダー（`X-Android-Package`、`X-Android-Cert`）をネイティブ実行時のRoutes APIリクエストへ追加した。ヘッダー付きの同一リクエストはHTTP 200と経路時間を確認済み。
+- 残課題：Capacitor WebView上の実機リクエストでCORSを含めた通し確認が必要。アプリ制限なしのキーへ変更する案は、キー露出と課金リスクが増えるため採用しない。

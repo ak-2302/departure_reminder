@@ -1,10 +1,13 @@
 import type { TravelMode } from './domain'
 import { fetchWithRetry } from './network'
+import { Capacitor } from '@capacitor/core'
 
 const routesEndpoint = 'https://routes.googleapis.com/directions/v2:computeRoutes'
 const cacheTtlMs = 10 * 60 * 1000
 const dailyRequestLimit = 50
 const dailyRequestKey = 'routes-api-daily-request-count'
+const androidPackage = 'jp.ak2302.departurereminder'
+const androidCertSha1 = '648DCB1015E78A8685B13AEDFC1003343486B80C'
 const routeCache = new Map<string, { travelMinutes: number; expiresAt: number }>()
 const pendingRoutes = new Map<string, Promise<number>>()
 
@@ -62,13 +65,18 @@ async function requestTravelMinutes(origin: string, destination: string, mode: T
     if (departureTime) body.departureTime = departureTime
   }
 
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-Goog-Api-Key': apiKey,
+    'X-Goog-FieldMask': 'routes.duration',
+  }
+  if (Capacitor.isNativePlatform()) {
+    headers['X-Android-Package'] = androidPackage
+    headers['X-Android-Cert'] = androidCertSha1
+  }
   const response = await fetchWithRetry(routesEndpoint, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': 'routes.duration',
-    },
+    headers,
     body: JSON.stringify(body),
   })
   if (!response.ok) throw new Error(`Routes API error: ${response.status}`)
