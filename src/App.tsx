@@ -218,13 +218,10 @@ function Breakdown({ icon, label, value }: { icon: ReactNode; label: string; val
 
 function EventDetail({ event, settings, onClose }: { event: CalendarEvent; settings: Settings; onClose: () => void }) {
   const departure = calculateDeparture(event, settings)
-  useEffect(() => {
-    const closeOnEscape = (keyboardEvent: KeyboardEvent) => { if (keyboardEvent.key === 'Escape') onClose() }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [onClose])
+  const dialogRef = useRef<HTMLElement>(null)
+  useDialogAccessibility(dialogRef, onClose)
   return <div className="panel-backdrop" role="presentation" onMouseDown={(mouseEvent) => mouseEvent.target === mouseEvent.currentTarget && onClose()}>
-    <section className="detail-dialog" role="dialog" aria-modal="true" aria-labelledby="event-detail-title" aria-describedby="event-detail-description">
+    <section ref={dialogRef} className="detail-dialog" role="dialog" aria-modal="true" aria-labelledby="event-detail-title" aria-describedby="event-detail-description">
       <div className="panel-header"><h2>予定の詳細</h2><button className="icon-button" aria-label="予定の詳細を閉じる" onClick={onClose}><X size={22} /></button></div>
       <p className="event-start">{event.startsAt}開始</p>
       <h2 id="event-detail-title">{event.title}</h2>
@@ -241,17 +238,36 @@ function EventDetail({ event, settings, onClose }: { event: CalendarEvent; setti
   </div>
 }
 
+function useDialogAccessibility(dialogRef: React.RefObject<HTMLElement | null>, onClose: () => void) {
+  useEffect(() => {
+    const dialog = dialogRef.current
+    const focusable = () => dialog ? Array.from(dialog.querySelectorAll<HTMLElement>('button, input, select, [href], [tabindex]:not([tabindex="-1"])')) : []
+    const first = focusable()[0]
+    first?.focus()
+    const handleKeyDown = (keyboardEvent: KeyboardEvent) => {
+      if (keyboardEvent.key === 'Escape') { onClose(); return }
+      if (keyboardEvent.key !== 'Tab') return
+      const elements = focusable()
+      if (!elements.length) return
+      const current = document.activeElement
+      const index = elements.indexOf(current as HTMLElement)
+      const nextIndex = keyboardEvent.shiftKey ? (index <= 0 ? elements.length - 1 : index - 1) : (index === elements.length - 1 ? 0 : index + 1)
+      keyboardEvent.preventDefault()
+      elements[nextIndex].focus()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [dialogRef, onClose])
+}
+
 function SettingsPanel({ settings, onClose, onSave, onConnectCalendar, onDisconnectCalendar }: { settings: Settings; onClose: () => void; onSave: (settings: Settings) => Promise<void>; onConnectCalendar: () => void; onDisconnectCalendar: () => void }) {
   const [draft, setDraft] = useState(settings)
+  const dialogRef = useRef<HTMLElement>(null)
   const modes: TravelMode[] = ['transit', 'walking', 'bicycling', 'driving']
-  useEffect(() => {
-    const closeOnEscape = (keyboardEvent: KeyboardEvent) => { if (keyboardEvent.key === 'Escape') onClose() }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [onClose])
+  useDialogAccessibility(dialogRef, onClose)
   return (
     <div className="panel-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <aside className="settings-panel" aria-label="設定">
+      <aside ref={dialogRef} className="settings-panel" role="dialog" aria-modal="true" aria-label="設定">
         <div className="panel-header"><h2>設定</h2><button className="icon-button" aria-label="設定を閉じる" onClick={onClose}><X size={22} /></button></div>
         <label>出発地点<input value={draft.origin} onChange={(event) => setDraft({ ...draft, origin: event.target.value })} placeholder="自宅の住所" /></label>
         <label>移動手段<select value={draft.travelMode} onChange={(event) => setDraft({ ...draft, travelMode: event.target.value as TravelMode })}>{modes.map((mode) => <option value={mode} key={mode}>{travelModeLabel(mode)}</option>)}</select></label>
