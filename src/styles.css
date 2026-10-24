@@ -72,6 +72,7 @@ button { cursor: pointer; }
 .detail-grid span { color: var(--muted); }
 .detail-grid strong { color: var(--ink); }
 .detail-status { margin: 14px 0 0; color: var(--muted); font-size: .84rem; }
+.permission-status { margin: 8px 0 0; color: var(--muted); font-size: .84rem; }
 
 @media (max-width: 600px) {
   .main-content { padding-top: 40px; }

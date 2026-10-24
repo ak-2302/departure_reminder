@@ -8,7 +8,7 @@ import { Bell, ChevronRight, Clock3, MapPin, Settings as SettingsIcon, Smartphon
 import { calculateDeparture, defaultSettings, sampleEvents, travelModeLabel, type CalendarEvent, type Settings, type TravelMode } from './domain'
 import { fetchCalendarEvents, requestCalendarAccess } from './googleCalendar'
 import { fetchTravelMinutes } from './googleRoutes'
-import { cancelDepartureNotifications, notificationId, scheduleDepartureNotification } from './notifications'
+import { cancelDepartureNotifications, getNotificationPermission, notificationId, scheduleDepartureNotification } from './notifications'
 import { clearEvents, loadEvents, loadSettings, saveEvents, saveSettings } from './storage'
 
 function App() {
@@ -18,6 +18,7 @@ function App() {
   const [events, setEvents] = useState<CalendarEvent[]>(sampleEvents)
   const [detailEvent, setDetailEvent] = useState<CalendarEvent | null>(null)
   const [calendarStatus, setCalendarStatus] = useState('サンプル予定を表示中')
+  const [notificationPermission, setNotificationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt')
   const accessTokenRef = useRef<string | undefined>(undefined)
   const eventsRef = useRef(events)
   eventsRef.current = events
@@ -54,6 +55,10 @@ function App() {
       void notificationListener?.remove()
     }
   }, [])
+
+  useEffect(() => {
+    if (settingsOpen) void getNotificationPermission().then(setNotificationPermission)
+  }, [settingsOpen])
 
   const updateSettings = async (next: Settings) => {
     setSettings(next)
@@ -207,7 +212,7 @@ function App() {
 
       {saved && <div className="save-toast" role="status">設定を保存しました</div>}
       {detailEvent && <EventDetail event={detailEvent} settings={settings} onClose={() => setDetailEvent(null)} />}
-      {settingsOpen && <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} onSave={updateSettings} onConnectCalendar={() => void connectCalendar()} onDisconnectCalendar={() => void disconnectCalendar()} />}
+      {settingsOpen && <SettingsPanel settings={settings} notificationPermission={notificationPermission} onClose={() => setSettingsOpen(false)} onSave={updateSettings} onConnectCalendar={() => void connectCalendar()} onDisconnectCalendar={() => void disconnectCalendar()} />}
     </div>
   )
 }
@@ -260,7 +265,7 @@ function useDialogAccessibility(dialogRef: React.RefObject<HTMLElement | null>, 
   }, [dialogRef, onClose])
 }
 
-function SettingsPanel({ settings, onClose, onSave, onConnectCalendar, onDisconnectCalendar }: { settings: Settings; onClose: () => void; onSave: (settings: Settings) => Promise<void>; onConnectCalendar: () => void; onDisconnectCalendar: () => void }) {
+function SettingsPanel({ settings, notificationPermission, onClose, onSave, onConnectCalendar, onDisconnectCalendar }: { settings: Settings; notificationPermission: 'granted' | 'denied' | 'prompt'; onClose: () => void; onSave: (settings: Settings) => Promise<void>; onConnectCalendar: () => void; onDisconnectCalendar: () => void }) {
   const [draft, setDraft] = useState(settings)
   const dialogRef = useRef<HTMLElement>(null)
   const modes: TravelMode[] = ['transit', 'walking', 'bicycling', 'driving']
@@ -274,6 +279,7 @@ function SettingsPanel({ settings, onClose, onSave, onConnectCalendar, onDisconn
         <label>準備時間（分）<input type="number" min="0" value={draft.preparationMinutes} onChange={(event) => setDraft({ ...draft, preparationMinutes: Number(event.target.value) || 0 })} /></label>
         <label>余裕時間（分）<input type="number" min="0" value={draft.bufferMinutes} onChange={(event) => setDraft({ ...draft, bufferMinutes: Number(event.target.value) || 0 })} /></label>
         <label className="toggle-row"><span><Bell size={19} />振動通知</span><input type="checkbox" checked={draft.vibrationEnabled} onChange={(event) => setDraft({ ...draft, vibrationEnabled: event.target.checked })} /></label>
+        <p className="permission-status">通知権限：{notificationPermission === 'granted' ? '許可されています' : notificationPermission === 'denied' ? '拒否されています' : '未確認です'}</p>
         <button className="secondary-button" onClick={onConnectCalendar}>Googleカレンダーに接続</button>
         <button className="secondary-button danger-button" onClick={onDisconnectCalendar}>Google連携を解除してデータを削除</button>
         <button className="primary-button" onClick={() => void onSave(draft).then(onClose)}>保存する</button>

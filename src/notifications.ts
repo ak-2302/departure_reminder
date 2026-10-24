@@ -3,6 +3,11 @@ import type { CalendarEvent, Settings } from './domain'
 
 const channelId = 'departure-reminders'
 
+export async function getNotificationPermission(): Promise<'granted' | 'denied' | 'prompt'> {
+  const permission = await LocalNotifications.checkPermissions()
+  return permission.display === 'granted' ? 'granted' : permission.display === 'denied' ? 'denied' : 'prompt'
+}
+
 export function notificationId(eventId: string): number {
   let hash = 0
   for (const character of eventId) hash = (hash * 31 + character.charCodeAt(0)) >>> 0
