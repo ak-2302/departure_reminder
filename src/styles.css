@@ -25,6 +25,9 @@ button { cursor: pointer; }
 .section-label { margin: 0 0 8px; color: var(--muted); font-size: clamp(1.25rem, 3vw, 1.8rem); font-weight: 700; letter-spacing: -.04em; }
 .departure-time { color: var(--accent); font-size: clamp(5.2rem, 18vw, 10.5rem); font-weight: 800; letter-spacing: -.09em; line-height: .9; }
 .departure-caption { margin: 14px 0 0; color: var(--muted); font-size: clamp(1.2rem, 3vw, 1.7rem); }
+.calendar-status { margin: -18px 0 20px; color: var(--muted); font-size: .9rem; }
+.empty-state { padding: 32px; border: 1px dashed var(--line); border-radius: 18px; color: var(--muted); background: rgba(255,255,255,.4); }
+.empty-state h2 { margin: 0 0 8px; color: var(--ink); }
 .event-focus { padding: clamp(22px, 4vw, 36px); border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.58); }
 .event-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
 .event-start, .event-header h1, .event-list-row p, .event-list-row h3, .event-list-row span { margin: 0; }
@@ -61,6 +64,7 @@ button { cursor: pointer; }
 .toggle-row span { display: inline-flex; align-items: center; gap: 8px; }
 .toggle-row input { width: 21px; height: 21px; accent-color: var(--accent); }
 .primary-button { width: 100%; margin-top: 24px; padding: 14px; color: white; border: 0; border-radius: 10px; background: var(--accent); font-weight: 800; }
+.secondary-button { width: 100%; margin-top: 10px; padding: 13px; color: var(--accent); border: 1px solid #b7d9d3; border-radius: 10px; background: var(--accent-soft); font-weight: 800; }
 
 @media (max-width: 600px) {
   .main-content { padding-top: 40px; }

@@ -15,6 +15,12 @@ Googleカレンダーの予定とGoogle Mapsの経路情報から、間に合う
 npm install
 ```
 
+Googleカレンダー連携を試す場合は、`.env.example`を`.env.local`へコピーし、Google Cloudで作成したOAuthクライアントIDを設定します。実際のキーはGitへコミットしないでください。
+
+```sh
+cp .env.example .env.local
+```
+
 ## Web開発・ビルド
 
 ```sh

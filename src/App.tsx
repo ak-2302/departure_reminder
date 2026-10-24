@@ -2,15 +2,18 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
 import { Bell, ChevronRight, Clock3, MapPin, Settings as SettingsIcon, Smartphone, TrainFront, X } from 'lucide-react'
-import { calculateDeparture, defaultSettings, sampleEvents, travelModeLabel, type Settings, type TravelMode } from './domain'
+import { calculateDeparture, defaultSettings, sampleEvents, travelModeLabel, type CalendarEvent, type Settings, type TravelMode } from './domain'
+import { fetchCalendarEvents, requestCalendarAccess } from './googleCalendar'
 import { loadSettings, saveSettings } from './storage'
 
 function App() {
   const [settings, setSettings] = useState<Settings>(defaultSettings)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [saved, setSaved] = useState(false)
-  const nextEvent = sampleEvents[0]
-  const departureAt = useMemo(() => calculateDeparture(nextEvent, settings), [nextEvent, settings])
+  const [events, setEvents] = useState<CalendarEvent[]>(sampleEvents)
+  const [calendarStatus, setCalendarStatus] = useState('サンプル予定を表示中')
+  const nextEvent = events[0]
+  const departureAt = useMemo(() => nextEvent ? calculateDeparture(nextEvent, settings) : '--:--', [nextEvent, settings])
 
   useEffect(() => {
     void loadSettings().then(setSettings)
@@ -25,6 +28,18 @@ function App() {
 
   const testVibration = async () => {
     if (settings.vibrationEnabled) await Haptics.impact({ style: ImpactStyle.Light })
+  }
+
+  const connectCalendar = async () => {
+    setCalendarStatus('Googleカレンダーに接続中…')
+    try {
+      const accessToken = await requestCalendarAccess()
+      const calendarEvents = await fetchCalendarEvents(accessToken)
+      setEvents(calendarEvents)
+      setCalendarStatus(`${calendarEvents.length}件の予定を取得しました`)
+    } catch (error) {
+      setCalendarStatus(error instanceof Error ? error.message : 'Googleカレンダーに接続できませんでした')
+    }
   }
 
   return (
@@ -44,7 +59,8 @@ function App() {
           <p className="departure-caption">この時間に出発してください</p>
         </section>
 
-        <section className="event-focus" aria-label="次の予定">
+        <p className="calendar-status" role="status">{calendarStatus}</p>
+        {nextEvent ? <section className="event-focus" aria-label="次の予定">
           <div className="event-header">
             <div>
               <p className="event-start">{nextEvent.startsAt}開始</p>
@@ -64,7 +80,7 @@ function App() {
             <strong>振動通知 {settings.vibrationEnabled ? 'オン' : 'オフ'}</strong>
             <ChevronRight size={22} className="push-right" />
           </button>
-        </section>
+        </section> : <section className="empty-state"><h2>予定がありません</h2><p>Googleカレンダーから予定を取得してください。</p></section>}
 
         <section className="upcoming" aria-labelledby="upcoming-heading">
           <div className="section-heading-row">
@@ -72,7 +88,7 @@ function App() {
             <span>{travelModeLabel(settings.travelMode)}</span>
           </div>
           <div className="event-list">
-            {sampleEvents.slice(1).map((event) => (
+            {events.slice(1).map((event) => (
               <article className="event-list-row" key={event.id}>
                 <div>
                   <p>{event.startsAt}開始</p>
@@ -91,7 +107,7 @@ function App() {
       </main>
 
       {saved && <div className="save-toast" role="status">設定を保存しました</div>}
-      {settingsOpen && <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} onSave={updateSettings} />}
+      {settingsOpen && <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} onSave={updateSettings} onConnectCalendar={() => void connectCalendar()} />}
     </div>
   )
 }
@@ -100,7 +116,7 @@ function Breakdown({ icon, label, value }: { icon: ReactNode; label: string; val
   return <div className="breakdown-item"><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>
 }
 
-function SettingsPanel({ settings, onClose, onSave }: { settings: Settings; onClose: () => void; onSave: (settings: Settings) => Promise<void> }) {
+function SettingsPanel({ settings, onClose, onSave, onConnectCalendar }: { settings: Settings; onClose: () => void; onSave: (settings: Settings) => Promise<void>; onConnectCalendar: () => void }) {
   const [draft, setDraft] = useState(settings)
   const modes: TravelMode[] = ['transit', 'walking', 'bicycling', 'driving']
   return (
@@ -112,6 +128,7 @@ function SettingsPanel({ settings, onClose, onSave }: { settings: Settings; onCl
         <label>準備時間（分）<input type="number" min="0" value={draft.preparationMinutes} onChange={(event) => setDraft({ ...draft, preparationMinutes: Number(event.target.value) || 0 })} /></label>
         <label>余裕時間（分）<input type="number" min="0" value={draft.bufferMinutes} onChange={(event) => setDraft({ ...draft, bufferMinutes: Number(event.target.value) || 0 })} /></label>
         <label className="toggle-row"><span><Bell size={19} />振動通知</span><input type="checkbox" checked={draft.vibrationEnabled} onChange={(event) => setDraft({ ...draft, vibrationEnabled: event.target.checked })} /></label>
+        <button className="secondary-button" onClick={onConnectCalendar}>Googleカレンダーに接続</button>
         <button className="primary-button" onClick={() => void onSave(draft).then(onClose)}>保存する</button>
       </aside>
     </div>
