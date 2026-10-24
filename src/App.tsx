@@ -20,6 +20,7 @@ function App() {
   const [events, setEvents] = useState<CalendarEvent[]>(sampleEvents)
   const [detailEvent, setDetailEvent] = useState<CalendarEvent | null>(null)
   const [calendarStatus, setCalendarStatus] = useState('サンプル予定を表示中')
+  const [calendarDataStale, setCalendarDataStale] = useState(false)
   const [notificationPermission, setNotificationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt')
   const accessTokenRef = useRef<string | undefined>(undefined)
   const eventsRef = useRef(events)
@@ -30,7 +31,11 @@ function App() {
   useEffect(() => {
     void loadSettings().then(setSettings)
     void loadEvents().then((storedEvents) => {
-      if (storedEvents?.length) setEvents(storedEvents)
+      if (storedEvents?.length) {
+        setEvents(storedEvents)
+        setCalendarStatus('保存済みの予定を表示中')
+        setCalendarDataStale(true)
+      }
     })
     const syncWhenActive = ({ isActive }: { isActive: boolean }) => {
       if (isActive) void syncCalendar(accessTokenRef.current, true)
@@ -91,8 +96,10 @@ function App() {
       })
       setEvents(refreshedEvents)
       await saveEvents(refreshedEvents)
+      setCalendarDataStale(false)
       setCalendarStatus(`${calendarEvents.length}件の予定を取得しました`)
     } catch (error) {
+      setCalendarDataStale(true)
       setCalendarStatus(error instanceof Error ? error.message : 'Googleカレンダーに接続できませんでした')
     }
   }
@@ -138,6 +145,10 @@ function App() {
 
   const scheduleNotification = async () => {
     if (!nextEvent) return
+    if (calendarDataStale) {
+      setCalendarStatus('最新のカレンダー取得に失敗しているため通知を設定できません')
+      return
+    }
     setCalendarStatus('通知を設定中…')
     try {
       await scheduleDepartureNotification(nextEvent, settings)
@@ -167,7 +178,7 @@ function App() {
           <p className="departure-caption">この時間に出発してください</p>
         </section>
 
-        <p className="calendar-status" role="status">{calendarStatus}</p>
+        <p className={`calendar-status${calendarDataStale ? ' stale' : ''}`} role="status">{calendarStatus}{calendarDataStale ? '（古いデータ）' : ''}</p>
         {nextEvent ? <section className="event-focus" aria-label="次の予定">
           <div className="event-header">
             <div>
