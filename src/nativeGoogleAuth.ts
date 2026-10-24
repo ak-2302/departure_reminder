@@ -86,3 +86,19 @@ export async function requestNativeCalendarAccess(): Promise<string> {
       .catch((error) => void fail(error instanceof Error ? error : new Error('Google認証画面を開けませんでした')))
   })
 }
+
+export async function refreshNativeCalendarAccess(): Promise<string | undefined> {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+  if (!clientId) throw new Error('VITE_GOOGLE_CLIENT_IDが設定されていません')
+  const { token: refreshToken } = await secureToken.getRefreshToken()
+  if (!refreshToken) return undefined
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: clientId, refresh_token: refreshToken, grant_type: 'refresh_token' }),
+  })
+  if (!response.ok) throw new Error('Google認証を更新できませんでした。再接続してください')
+  const token = await response.json() as { access_token?: string }
+  if (!token.access_token) throw new Error('更新されたGoogleアクセストークンがありません')
+  return token.access_token
+}

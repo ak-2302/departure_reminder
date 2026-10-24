@@ -9,6 +9,7 @@ import { Browser } from '@capacitor/browser'
 import { Bell, ChevronRight, Clock3, MapPin, Settings as SettingsIcon, Smartphone, TrainFront, X } from 'lucide-react'
 import { calculateDeparture, defaultSettings, mergeCalendarEvents, sampleEvents, travelModeLabel, type CalendarEvent, type Settings, type TravelMode } from './domain'
 import { fetchCalendarEvents, requestCalendarAccess } from './googleCalendar'
+import { refreshNativeCalendarAccess } from './nativeGoogleAuth'
 import { fetchTravelMinutes } from './googleRoutes'
 import { cancelDepartureNotifications, getNotificationPermission, notificationId, scheduleDepartureNotification } from './notifications'
 import { appSettings } from './appSettings'
@@ -39,11 +40,19 @@ function App() {
         setCalendarDataStale(true)
       }
     })
+    const restoreAndSync = async () => {
+      let accessToken = accessTokenRef.current
+      if (!accessToken && Capacitor.getPlatform() === 'android') {
+        accessToken = await refreshNativeCalendarAccess()
+        accessTokenRef.current = accessToken
+      }
+      await syncCalendar(accessToken, true)
+    }
     const syncWhenActive = ({ isActive }: { isActive: boolean }) => {
-      if (isActive) void syncCalendar(accessTokenRef.current, true)
+      if (isActive) void restoreAndSync().catch(() => undefined)
     }
     const syncWhenOnline = ({ connected }: { connected: boolean }) => {
-      if (connected) void syncCalendar(accessTokenRef.current, true)
+      if (connected) void restoreAndSync().catch(() => undefined)
     }
     let appListener: { remove: () => Promise<void> } | undefined
     let networkListener: { remove: () => Promise<void> } | undefined
