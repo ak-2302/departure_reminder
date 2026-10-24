@@ -67,6 +67,22 @@ export function calculateDeparture(event: CalendarEvent, settings: Settings): st
   return `${String(Math.floor(normalized / 60)).padStart(2, '0')}:${String(normalized % 60).padStart(2, '0')}`
 }
 
+export function mergeCalendarEvents(current: CalendarEvent[], refreshed: CalendarEvent[]): { events: CalendarEvent[]; removedIds: string[]; changedIds: string[] } {
+  const currentById = new Map(current.map((event) => [event.id, event]))
+  const nextIds = new Set(refreshed.map((event) => event.id))
+  const removedIds = current.filter((event) => !nextIds.has(event.id)).map((event) => event.id)
+  const changedIds: string[] = []
+  const events = refreshed.map((event) => {
+    const previous = currentById.get(event.id)
+    if (!previous || previous.startAt === event.startAt) {
+      return { ...event, notificationEnabled: previous?.notificationEnabled, travelMinutes: previous?.travelMinutes ?? event.travelMinutes, travelUpdatedAt: previous?.travelUpdatedAt }
+    }
+    if (previous.notificationEnabled) changedIds.push(event.id)
+    return event
+  })
+  return { events, removedIds, changedIds }
+}
+
 export function travelModeLabel(mode: TravelMode): string {
   return { transit: '公共交通機関', walking: '徒歩', bicycling: '自転車', driving: '自動車' }[mode]
 }

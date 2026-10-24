@@ -6,7 +6,7 @@ import { Network } from '@capacitor/network'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { Browser } from '@capacitor/browser'
 import { Bell, ChevronRight, Clock3, MapPin, Settings as SettingsIcon, Smartphone, TrainFront, X } from 'lucide-react'
-import { calculateDeparture, defaultSettings, sampleEvents, travelModeLabel, type CalendarEvent, type Settings, type TravelMode } from './domain'
+import { calculateDeparture, defaultSettings, mergeCalendarEvents, sampleEvents, travelModeLabel, type CalendarEvent, type Settings, type TravelMode } from './domain'
 import { fetchCalendarEvents, requestCalendarAccess } from './googleCalendar'
 import { fetchTravelMinutes } from './googleRoutes'
 import { cancelDepartureNotifications, getNotificationPermission, notificationId, scheduleDepartureNotification } from './notifications'
@@ -85,17 +85,9 @@ function App() {
     setCalendarStatus(automatic ? 'カレンダーを再同期中…' : 'Googleカレンダーに接続中…')
     try {
       const calendarEvents = await fetchCalendarEvents(accessToken)
-      const currentEvents = eventsRef.current
-      const currentIds = new Set(currentEvents.map((event) => event.id))
-      const nextIds = new Set(calendarEvents.map((event) => event.id))
-      await cancelDepartureNotifications([...currentIds].filter((id) => !nextIds.has(id)))
-      const currentById = new Map(currentEvents.map((event) => [event.id, event]))
-      const refreshedEvents = calendarEvents.map((event) => {
-        const previous = currentById.get(event.id)
-        if (!previous || previous.startAt === event.startAt) return { ...event, notificationEnabled: previous?.notificationEnabled, travelMinutes: previous?.travelMinutes ?? event.travelMinutes, travelUpdatedAt: previous?.travelUpdatedAt }
-        if (previous.notificationEnabled) void cancelDepartureNotifications([event.id])
-        return event
-      })
+      const merged = mergeCalendarEvents(eventsRef.current, calendarEvents)
+      await cancelDepartureNotifications([...merged.removedIds, ...merged.changedIds])
+      const refreshedEvents = merged.events
       setEvents(refreshedEvents)
       await saveEvents(refreshedEvents)
       setCalendarDataStale(false)
