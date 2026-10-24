@@ -4,6 +4,7 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics'
 import { Bell, ChevronRight, Clock3, MapPin, Settings as SettingsIcon, Smartphone, TrainFront, X } from 'lucide-react'
 import { calculateDeparture, defaultSettings, sampleEvents, travelModeLabel, type CalendarEvent, type Settings, type TravelMode } from './domain'
 import { fetchCalendarEvents, requestCalendarAccess } from './googleCalendar'
+import { fetchTravelMinutes } from './googleRoutes'
 import { loadSettings, saveSettings } from './storage'
 
 function App() {
@@ -42,6 +43,18 @@ function App() {
     }
   }
 
+  const refreshRoute = async () => {
+    if (!nextEvent) return
+    setCalendarStatus('Google Mapsで経路を取得中…')
+    try {
+      const travelMinutes = await fetchTravelMinutes(settings.origin, nextEvent.location, settings.travelMode)
+      setEvents((current) => current.map((event, index) => index === 0 ? { ...event, travelMinutes } : event))
+      setCalendarStatus(`経路を更新しました（移動 ${travelMinutes}分）`)
+    } catch (error) {
+      setCalendarStatus(error instanceof Error ? error.message : '経路を取得できませんでした')
+    }
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -70,6 +83,7 @@ function App() {
               予定の詳細 <ChevronRight size={22} />
             </button>
           </div>
+          <button className="secondary-button route-button" onClick={() => void refreshRoute()}>移動時間を更新</button>
           <div className="event-breakdown">
             <Breakdown icon={<TrainFront size={24} />} label="移動" value={`${nextEvent.travelMinutes}分`} />
             <Breakdown icon={<Clock3 size={24} />} label="準備" value={`${nextEvent.preparationMinutes}分`} />
