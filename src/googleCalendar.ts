@@ -84,6 +84,7 @@ export async function fetchCalendarEvents(accessToken: string): Promise<Calendar
     const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
+    if (response.status === 401) throw new Error('Google認証の期限が切れています。再接続してください')
     if (!response.ok) throw new Error(`Calendar API error: ${response.status}`)
     const body = await response.json() as { items?: GoogleCalendarEvent[]; nextPageToken?: string }
     events.push(...(body.items ?? []).flatMap(toCalendarEvent))

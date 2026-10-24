@@ -11,6 +11,7 @@ function notificationId(eventId: string): number {
 
 export async function scheduleDepartureNotification(event: CalendarEvent, settings: Settings): Promise<void> {
   if (!event.startAt) throw new Error('実際のカレンダー予定を取得してから通知を設定してください')
+  if (!event.travelUpdatedAt) throw new Error('先に移動時間を更新してください')
   const departureAt = new Date(new Date(event.startAt).getTime() - (event.travelMinutes + event.preparationMinutes + settings.bufferMinutes) * 60_000)
   if (departureAt.getTime() <= Date.now()) throw new Error('出発時刻が過ぎているため通知を設定できません')
 
