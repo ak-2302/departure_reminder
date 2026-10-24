@@ -124,7 +124,7 @@ function App() {
     if (!nextEvent) return
     setCalendarStatus('Google Mapsで経路を取得中…')
     try {
-      const travelMinutes = await fetchTravelMinutes(settings.origin, nextEvent.location, settings.travelMode)
+      const travelMinutes = await fetchTravelMinutes(settings.origin, nextEvent.location, settings.travelMode, nextEvent.startAt)
       const updatedEvents = events.map((event, index) => index === 0 ? { ...event, travelMinutes, travelUpdatedAt: new Date().toISOString() } : event)
       setEvents(updatedEvents)
       await saveEvents(updatedEvents)

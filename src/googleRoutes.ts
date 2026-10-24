@@ -9,17 +9,17 @@ type GoogleRouteResponse = {
   routes?: Array<{ duration?: string }>
 }
 
-export async function fetchTravelMinutes(origin: string, destination: string, mode: TravelMode): Promise<number> {
+export async function fetchTravelMinutes(origin: string, destination: string, mode: TravelMode, departureTime?: string): Promise<number> {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
   if (!apiKey) throw new Error('VITE_GOOGLE_MAPS_API_KEYが設定されていません')
   if (!origin.trim() || !destination.trim()) throw new Error('出発地点と目的地を設定してください')
-  const cacheKey = `${origin.trim()}\u0000${destination.trim()}\u0000${mode}`
+  const cacheKey = `${origin.trim()}\u0000${destination.trim()}\u0000${mode}\u0000${departureTime ?? ''}`
   const cached = routeCache.get(cacheKey)
   if (cached && cached.expiresAt > Date.now()) return cached.travelMinutes
   const pending = pendingRoutes.get(cacheKey)
   if (pending) return pending
 
-  const request = requestTravelMinutes(origin.trim(), destination.trim(), mode, apiKey)
+  const request = requestTravelMinutes(origin.trim(), destination.trim(), mode, apiKey, departureTime)
   pendingRoutes.set(cacheKey, request)
   try {
     const travelMinutes = await request
@@ -30,7 +30,7 @@ export async function fetchTravelMinutes(origin: string, destination: string, mo
   }
 }
 
-async function requestTravelMinutes(origin: string, destination: string, mode: TravelMode, apiKey: string): Promise<number> {
+async function requestTravelMinutes(origin: string, destination: string, mode: TravelMode, apiKey: string, departureTime?: string): Promise<number> {
 
   const body: Record<string, unknown> = {
     origin: { address: origin },
@@ -39,7 +39,10 @@ async function requestTravelMinutes(origin: string, destination: string, mode: T
     languageCode: 'ja-JP',
     units: 'METRIC',
   }
-  if (mode === 'transit') body.transitPreferences = { routingPreference: 'FEWER_TRANSFERS' }
+  if (mode === 'transit') {
+    body.transitPreferences = { routingPreference: 'FEWER_TRANSFERS' }
+    if (departureTime) body.departureTime = departureTime
+  }
 
   const response = await fetch(routesEndpoint, {
     method: 'POST',
