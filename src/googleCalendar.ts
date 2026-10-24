@@ -68,7 +68,7 @@ export async function requestCalendarAccess(): Promise<string> {
 export async function fetchCalendarEvents(accessToken: string): Promise<CalendarEvent[]> {
   const now = new Date()
   const until = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-  const params = new URLSearchParams({
+  const baseParams = new URLSearchParams({
     singleEvents: 'true',
     orderBy: 'startTime',
     showDeleted: 'false',
@@ -76,12 +76,21 @@ export async function fetchCalendarEvents(accessToken: string): Promise<Calendar
     timeMax: until.toISOString(),
     maxResults: '50',
   })
-  const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
-  if (!response.ok) throw new Error(`Calendar API error: ${response.status}`)
-  const body = await response.json() as { items?: GoogleCalendarEvent[] }
-  return (body.items ?? []).flatMap(toCalendarEvent)
+  const events: CalendarEvent[] = []
+  let pageToken: string | undefined
+  for (let page = 0; page < 10; page += 1) {
+    const params = new URLSearchParams(baseParams)
+    if (pageToken) params.set('pageToken', pageToken)
+    const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (!response.ok) throw new Error(`Calendar API error: ${response.status}`)
+    const body = await response.json() as { items?: GoogleCalendarEvent[]; nextPageToken?: string }
+    events.push(...(body.items ?? []).flatMap(toCalendarEvent))
+    pageToken = body.nextPageToken
+    if (!pageToken) break
+  }
+  return events
 }
 
 type GoogleCalendarEvent = {
